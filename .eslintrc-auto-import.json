@@ -324,6 +324,10 @@
     "watchThrottled": true,
     "watchTriggerable": true,
     "watchWithFilter": true,
-    "whenever": true
+    "whenever": true,
+    "onElementRemoval": true,
+    "useCountdown": true,
+    "usePreferredReducedTransparency": true,
+    "useSSRWidth": true
   }
 }

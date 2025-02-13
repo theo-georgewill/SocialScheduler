@@ -1,6 +1,6 @@
 import { createVuetify } from 'vuetify'
 import { VBtn } from 'vuetify/components/VBtn'
-import { VCalendar } from 'vuetify/labs/components' 
+import { VCalendar, VFileUpload } from 'vuetify/labs/components'
 import defaults from './defaults'
 import { icons } from './icons'
 import { themes } from './theme'
@@ -22,6 +22,7 @@ export default function (app) {
     },
     components: {
       VCalendar, // ✅ Explicitly register VCalendar
+      VFileUpload,
     },
   })
 

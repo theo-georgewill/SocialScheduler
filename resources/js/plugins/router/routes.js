@@ -9,6 +9,10 @@ export const routes = [
         component: () => import('@/pages/dashboard.vue'),
       },
       {
+        path: 'file-upload',
+        component: () => import('@/pages/file-upload.vue'),
+      },
+      {
         path: 'calendar',
         component: () => import('@/pages/calendar.vue'),
       },
