@@ -139,6 +139,20 @@ import VerticalNavLink from '@layouts/components/VerticalNavLink.vue';
   />
   <VerticalNavLink
     :item="{
+      title: 'Create Posts',
+      icon: 'bx-calendar',
+      to: '/posts/create',
+    }"
+  />
+  <VerticalNavLink
+    :item="{
+      title: 'Scheduled Posts',
+      icon: 'bx-calendar',
+      to: '/posts/scheduled',
+    }"
+  />
+  <VerticalNavLink
+    :item="{
       title: 'Kanban',
       icon: 'bx-grid',
       href: 'https://demos.themeselection.com/sneat-vuetify-vuejs-laravel-admin-template/demo-1/apps/kanban',

@@ -1,21 +1,19 @@
 <script setup>
 import PostForm from '@/views/pages/form-layouts/PostForm.vue'
-import { ref } from 'vue';
-import axios from 'axios';
+import { ref } from 'vue'
+import axios from 'axios'
 
-const tab = ref(null);
-
-// Reactive files array
-const files = ref([]);
+const tab = ref(null)
+const files = ref([])
 
 // Allowed file types
-const validExtensions = ['.jpg', '.jpeg', '.png', '.mp4', '.avi', '.mov'];
+const validExtensions = ['.jpg', '.jpeg', '.png', '.mp4', '.avi', '.mov']
 
 // Handle adding files
-const handleAdd = (addedFiles) => {
-  addedFiles.forEach((file) => {
-    const fileExtension = file.name.slice(((file.name.lastIndexOf(".") - 1) >>> 0) + 2);
-    if (validExtensions.includes(`.${fileExtension.toLowerCase()}`)) {
+const handleAdd = (uploadedFiles) => {
+  uploadedFiles.forEach((file) => {
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+    if (validExtensions.includes(`.${fileExtension}`)) {
       files.value.push(file);
     } else {
       alert(`File type .${fileExtension} is not allowed!`);
@@ -25,11 +23,18 @@ const handleAdd = (addedFiles) => {
 
 // Handle file removal
 const handleRemove = (index) => {
-  files.value.splice(index, 1);
-};
+  files.value.splice(index, 1)
+}
 
 // Upload files to the backend
 const uploadFiles = async () => {
+  console.log('Selected files:', files.value); // DEBUGGING STEP
+  
+  if (!files.value || files.value.length === 0) {
+    alert('Please select at least one file before uploading.');
+    return;
+  }
+
   const formData = new FormData();
   files.value.forEach((file) => {
     formData.append('files[]', file);
@@ -39,11 +44,17 @@ const uploadFiles = async () => {
     const response = await axios.post('/api/upload-files', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    console.log('Files uploaded successfully!', response);
+
+    console.log('Files uploaded successfully!', response.data);
+    alert('Files uploaded successfully!');
+    files.value = []; // Clear files after upload
   } catch (error) {
-    console.error('Error uploading files:', error);
+    console.error('Error uploading files:', error.response ? error.response.data : error);
+    alert(`Upload failed: ${error.response?.data?.error || 'Unknown error'}`);
   }
 };
+
+
 </script>
 
 <template>
@@ -62,10 +73,13 @@ const uploadFiles = async () => {
             <v-container fluid>
                 <div class="uploadContainer">
                     <v-file-upload 
-                      v-model:file="files" 
-                      @update:file="handleAdd"
+                      v-model="files" 
+                      @remove="handleRemove"
                       accept="image/*,video/*"
                       multiple
+                      show-size
+                      counter
+                      chips
                     />
                     <button @click="uploadFiles">Upload Files</button>
                 </div>

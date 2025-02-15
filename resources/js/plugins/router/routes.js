@@ -9,8 +9,12 @@ export const routes = [
         component: () => import('@/pages/dashboard.vue'),
       },
       {
-        path: 'file-upload',
-        component: () => import('@/pages/file-upload.vue'),
+        path: 'posts/create',
+        component: () => import('@/pages/posts/create.vue'),
+      },
+      {
+        path: 'posts/scheduled',
+        component: () => import('@/pages/posts/scheduled.vue'),
       },
       {
         path: 'account-config',

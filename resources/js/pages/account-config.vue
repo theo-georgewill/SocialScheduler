@@ -85,7 +85,7 @@ onMounted(fetchAccounts);
     <v-btn class="mt-4" color="primary" @click="connectAccount('facebook')">
       Connect Facebook
     </v-btn>
-    <v-btn class="mt-4 ml-2" color="blue" @click="connectAccount('twitter')">
+    <v-btn class="mt-4 ml-2" color="primary" @click="connectAccount('twitter')">
       Connect Twitter
     </v-btn>
 
