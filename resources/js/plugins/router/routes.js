@@ -13,6 +13,10 @@ export const routes = [
         component: () => import('@/pages/file-upload.vue'),
       },
       {
+        path: 'account-config',
+        component: () => import('@/pages/account-config.vue'),
+      },
+      {
         path: 'calendar',
         component: () => import('@/pages/calendar.vue'),
       },

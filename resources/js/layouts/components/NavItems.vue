@@ -186,6 +186,13 @@ import VerticalNavLink from '@layouts/components/VerticalNavLink.vue';
   />
   <VerticalNavLink
     :item="{
+      title: 'Account Config',
+      icon: 'bx-group',
+      to: '/account-config',
+    }"
+  />
+  <VerticalNavLink
+    :item="{
       title: 'Typography',
       icon: 'bx-text',
       to: '/typography',
