@@ -2,6 +2,7 @@
 import AccountSettingsAccount from '@/views/pages/account-settings/AccountSettingsAccount.vue'
 import AccountSettingsNotification from '@/views/pages/account-settings/AccountSettingsNotification.vue'
 import AccountSettingsSecurity from '@/views/pages/account-settings/AccountSettingsSecurity.vue'
+import AccountsSocialConfig from '@/views/pages/account-settings/AccountsSocialConfig.vue'
 
 const route = useRoute()
 const activeTab = ref(route.params.tab)
@@ -22,6 +23,11 @@ const tabs = [
     title: 'Notifications',
     icon: 'bx-bell',
     tab: 'notification',
+  },
+  {
+    title: 'Config',
+    icon: 'bx-cog',
+    tab: 'config',
   },
 ]
 </script>
@@ -64,6 +70,11 @@ const tabs = [
       <!-- Notification -->
       <VWindowItem value="notification">
         <AccountSettingsNotification />
+      </VWindowItem>
+
+      <!-- Notification -->
+      <VWindowItem value="config">
+        <AccountsSocialConfig />
       </VWindowItem>
     </VWindow>
   </div>

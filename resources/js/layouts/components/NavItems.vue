@@ -107,32 +107,12 @@ import VerticalNavLink from '@layouts/components/VerticalNavLink.vue';
   <!-- 👉 Apps & Pages -->
   <VerticalNavSectionTitle
     :item="{
-      heading: 'Apps & Pages',
+      heading: 'Content',
     }"
   />
   <VerticalNavLink
     :item="{
-      title: 'Email',
-      icon: 'bx-envelope',
-      href: 'https://demos.themeselection.com/sneat-vuetify-vuejs-laravel-admin-template/demo-1/apps/email',
-      target: '_blank',
-      badgeContent: 'Pro',
-      badgeClass: 'bg-light-primary text-primary',
-    }"
-  />
-  <VerticalNavLink
-    :item="{
-      title: 'Chat',
-      icon: 'bx-chat',
-      href: 'https://demos.themeselection.com/sneat-vuetify-vuejs-laravel-admin-template/demo-1/apps/chat',
-      target: '_blank',
-      badgeContent: 'Pro',
-      badgeClass: 'bg-light-primary text-primary',
-    }"
-  />
-  <VerticalNavLink
-    :item="{
-      title: 'Calendar',
+      title: 'Content Calendar',
       icon: 'bx-calendar',
       to: '/calendar',
     }"
@@ -151,44 +131,18 @@ import VerticalNavLink from '@layouts/components/VerticalNavLink.vue';
       to: '/posts/scheduled',
     }"
   />
-  <VerticalNavLink
-    :item="{
-      title: 'Kanban',
-      icon: 'bx-grid',
-      href: 'https://demos.themeselection.com/sneat-vuetify-vuejs-laravel-admin-template/demo-1/apps/kanban',
-      target: '_blank',
-      badgeContent: 'Pro',
-      badgeClass: 'bg-light-primary text-primary',
-    }"
-  />
 
-  <VerticalNavLink
+  <!-- 👉 Configuration -->
+  <VerticalNavSectionTitle
     :item="{
-      title: 'Account Settings',
-      icon: 'bx-user',
-      to: '/account-settings',
-    }"
-  />
-
-  <VerticalNavLink
-    :item="{
-      title: 'Login',
-      icon: 'bx-log-in',
-      to: '/login',
+      heading: 'Configuration',
     }"
   />
   <VerticalNavLink
     :item="{
-      title: 'Register',
-      icon: 'bx-user-plus',
-      to: '/register',
-    }"
-  />
-  <VerticalNavLink
-    :item="{
-      title: 'Error',
-      icon: 'bx-info-circle',
-      to: '/no-existence',
+      title: 'Accounts',
+      icon: 'bx-group',
+      to: '/account-config',
     }"
   />
 
@@ -196,13 +150,6 @@ import VerticalNavLink from '@layouts/components/VerticalNavLink.vue';
   <VerticalNavSectionTitle
     :item="{
       heading: 'User Interface',
-    }"
-  />
-  <VerticalNavLink
-    :item="{
-      title: 'Account Config',
-      icon: 'bx-group',
-      to: '/account-config',
     }"
   />
   <VerticalNavLink
