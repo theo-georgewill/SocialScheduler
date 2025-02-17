@@ -17,6 +17,10 @@ export const routes = [
         component: () => import('@/pages/posts/scheduled.vue'),
       },
       {
+        path: 'posts/scheduler',
+        component: () => import('@/pages/posts/scheduler.vue'),
+      },
+      {
         path: 'account-config',
         component: () => import('@/pages/account-config.vue'),
       },
