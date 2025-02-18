@@ -22,7 +22,7 @@ export const routes = [
       },
       {
         path: 'account-config',
-        component: () => import('@/pages/account-config.vue'),
+        component: () => import('@/pages/social/config.vue'),
       },
       {
         path: 'calendar',

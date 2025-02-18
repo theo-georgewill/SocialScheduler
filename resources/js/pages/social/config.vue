@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useRouter } from 'vue-router';
 
 const accounts = ref([]);
+const selectedAccounts = ref([]); // Stores selected accounts
 const loading = ref(false);
 const router = useRouter();
 
@@ -24,12 +25,9 @@ const fetchAccounts = async () => {
   loading.value = true;
   try {
     const response = await axios.get('/api/social-accounts');
-
-    // Check if response exists and contains data
-    if (response?.data && Array.isArray(response.data) && response.data.length > 0) {
+    if (response?.data && Array.isArray(response.data)) {
       accounts.value = response.data;
-    } else {
-      accounts.value = []; // Ensure it's always an array
+      loadSelectedAccounts(); // Load user-selected accounts
     }
   } catch (error) {
     console.error("Fetch error:", error);
@@ -39,6 +37,13 @@ const fetchAccounts = async () => {
   }
 };
 
+// Load selected accounts from local storage
+const loadSelectedAccounts = () => {
+  const storedSelection = localStorage.getItem('selectedAccounts');
+  if (storedSelection) {
+    selectedAccounts.value = JSON.parse(storedSelection);
+  }
+};
 
 // Handle OAuth connection
 const connectAccount = (provider) => {
@@ -51,12 +56,20 @@ const disconnectAccount = async (id) => {
   try {
     await axios.delete(`/api/social-accounts/${id}`);
     accounts.value = accounts.value.filter(acc => acc.id !== id);
+    selectedAccounts.value = selectedAccounts.value.filter(accId => accId !== id); // Remove from selected
+    saveSelectedAccounts(); // Update selection storage
     showSnackbar('Account disconnected', 'success');
   } catch (error) {
     showSnackbar('Failed to disconnect', 'error');
   } finally {
     loading.value = false;
   }
+};
+
+// Save selected accounts
+const saveSelectedAccounts = () => {
+  localStorage.setItem('selectedAccounts', JSON.stringify(selectedAccounts.value));
+  showSnackbar('Selected accounts saved!', 'success');
 };
 
 onMounted(fetchAccounts);
@@ -74,6 +87,12 @@ onMounted(fetchAccounts);
               <v-list-item-subtitle>{{ account.username }}</v-list-item-subtitle>
             </v-list-item-content>
             <v-list-item-action>
+              <!-- Checkbox for selecting accounts -->
+              <v-checkbox
+                v-model="selectedAccounts"
+                :value="account.id"
+                label="Use for Posting"
+              ></v-checkbox>
               <v-btn color="red" @click="disconnectAccount(account.id)">Disconnect</v-btn>
             </v-list-item-action>
           </v-list-item>
@@ -87,6 +106,11 @@ onMounted(fetchAccounts);
     </v-btn>
     <v-btn class="mt-4 ml-2" color="primary" @click="connectAccount('twitter')">
       Connect Twitter
+    </v-btn>
+
+    <!-- Save Selected Accounts Button -->
+    <v-btn class="mt-4 ml-2" color="success" @click="saveSelectedAccounts">
+      Save Selected Accounts
     </v-btn>
 
     <!-- Snackbar Component -->

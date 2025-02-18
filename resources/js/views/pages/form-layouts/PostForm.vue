@@ -23,7 +23,7 @@ const submitTextPost = () => {
         </VRow>
       </VCol>
 
-      <!-- 👉 Submit button -->
+      <!-- 👉 Submit button 
       <VCol cols="12">
         <VRow no-gutters>
           <VCol cols="12" md="9">
@@ -32,7 +32,7 @@ const submitTextPost = () => {
             </VBtn>
           </VCol>
         </VRow>
-      </VCol>
+      </VCol>-->
     </VRow>
   </VForm>
 </template>
