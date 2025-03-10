@@ -7,14 +7,17 @@ export const routes = [
       {
         path: 'dashboard',
         component: () => import('@/pages/dashboard.vue'),
+        meta: { requiresAuth: true },
       },
       {
         path: 'posts/create',
         component: () => import('@/pages/posts/create.vue'),
+        meta: { requiresAuth: true },
       },
       {
         path: 'posts/scheduled',
         component: () => import('@/pages/posts/scheduled.vue'),
+        meta: { requiresAuth: true },
       },
       {
         path: 'posts/scheduler',

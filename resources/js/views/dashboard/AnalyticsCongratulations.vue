@@ -2,9 +2,15 @@
 import { useTheme } from 'vuetify'
 import illustrationJohnDark from '@images/cards/illustration-john-dark.png'
 import illustrationJohnLight from '@images/cards/illustration-john-light.png'
+import { useAuthStore } from '@/stores/auth';
 
 const { global } = useTheme()
 const illustrationJohn = computed(() => global.name.value === 'dark' ? illustrationJohnDark : illustrationJohnLight)
+
+
+
+const authStore = useAuthStore();
+
 </script>
 
 <template>
@@ -18,7 +24,7 @@ const illustrationJohn = computed(() => global.name.value === 'dark' ? illustrat
       >
         <VCardItem class="pb-3">
           <VCardTitle class="text-primary">
-            Congratulations John! 🎉
+            Congratulations {{ authStore.user?.name || 'User' }}! 🎉
           </VCardTitle>
         </VCardItem>
 

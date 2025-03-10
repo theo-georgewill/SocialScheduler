@@ -1,18 +1,42 @@
 <script setup>
+import { useAuthStore } from '@/stores/auth'
 import AuthProvider from '@/views/pages/authentication/AuthProvider.vue'
 import logo from '@images/logo.svg?raw'
 import authV1BottomShape from '@images/svg/auth-v1-bottom-shape.svg?url'
 import authV1TopShape from '@images/svg/auth-v1-top-shape.svg?url'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const form = ref({
-  username: '',
+  name: '', // Change from username to name (matching your backend)
   email: '',
   password: '',
+  //password_confirmation: '', // Add password confirmation
   privacyPolicies: false,
 })
 
+const errorMessage = ref('')
 const isPasswordVisible = ref(false)
+const authStore = useAuthStore()
+
+// Register function to call the backend API
+const handleRegister = async () => {
+  if (!form.value.privacyPolicies) {
+    alert('You must agree to the privacy policy to continue.')
+    return
+  }
+
+  try {
+    await authStore.register({ name: form.value.name, email: form.value.email, password: form.value.password })
+    router.push('/dashboard') // Redirect after login
+  } catch (error) {
+    errorMessage.value = error.response?.data?.message || 'Invalid credentials 401'
+  }
+}
 </script>
+
 
 <template>
   <div class="auth-wrapper d-flex align-center justify-center pa-4">
@@ -61,14 +85,14 @@ const isPasswordVisible = ref(false)
         </VCardText>
 
         <VCardText>
-          <VForm @submit.prevent="$router.push('/')">
+          <VForm @submit.prevent="handleRegister">
             <VRow>
               <!-- Username -->
               <VCol cols="12">
                 <VTextField
-                  v-model="form.username"
+                  v-model="form.name"
                   autofocus
-                  label="Username"
+                  label="Name"
                   placeholder="Johndoe"
                 />
               </VCol>
@@ -120,6 +144,9 @@ const isPasswordVisible = ref(false)
                 </VBtn>
               </VCol>
 
+              <!-- Display error message -->
+              <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+              
               <!-- login instead -->
               <VCol
                 cols="12"
