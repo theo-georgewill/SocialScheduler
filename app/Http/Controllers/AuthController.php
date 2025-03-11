@@ -9,6 +9,36 @@ use App\Models\User;
 
 class AuthController extends Controller
 {
+
+    //Register User
+    public function register(Request $request)
+    {
+        // Validate input
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:6',
+        ]);
+
+        // Create user
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        // Log in the user automatically
+        Auth::login($user);
+
+        // Regenerate session to prevent session fixation attacks
+        $request->session()->regenerate();
+
+        return response()->json([
+            'message' => 'Registration successful',
+            'user' => $user
+        ], 201);
+    }
+    
     // Login using session-based authentication
     public function login(Request $request)
     {
@@ -48,25 +78,5 @@ class AuthController extends Controller
         return response()->json($request->user());
     }
 
-    //Register User
-    public function register(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        return response()->json([
-            'message' => 'Registration successful',
-            'user' => $user,
-        ], 201);
-    }
 
 }
