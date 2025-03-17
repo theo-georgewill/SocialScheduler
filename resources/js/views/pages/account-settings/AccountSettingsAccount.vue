@@ -1,9 +1,30 @@
 <script setup>
+
+import { useAuthStore } from '@/stores/auth'
 import avatar1 from '@images/avatars/avatar-1.png'
+import { onMounted, ref } from 'vue'
+
+const authStore = useAuthStore()
+
+const accountDataInitial = ref({
+  avatarImg: '',
+  firstName: '',
+  lastName: '',
+  email: '',
+  org: '',
+  phone: '',
+  address: '',
+  state: '',
+  zip: '',
+  country: '',
+  language: '',
+  timezone: '',
+  currency: '',
+})
 
 const accountData = {
   avatarImg: avatar1,
-  firstName: 'john',
+  firstName: 'Johnathan',
   lastName: 'Doe',
   email: 'johnDoe@example.com',
   org: 'ThemeSelection',
@@ -18,8 +39,10 @@ const accountData = {
 }
 
 const refInputEl = ref()
-const accountDataLocal = ref(structuredClone(accountData))
 const isAccountDeactivated = ref(false)
+
+//create a deep copy for the initial account data
+const accountDataLocal = ref(structuredClone(accountData))
 
 const resetForm = () => {
   accountDataLocal.value = structuredClone(accountData)
@@ -42,6 +65,7 @@ const resetAvatar = () => {
   accountDataLocal.value.avatarImg = accountData.avatarImg
 }
 
+//static timezones
 const timezones = [
   '(GMT-11:00) International Date Line West',
   '(GMT-11:00) Midway Island',
@@ -84,6 +108,7 @@ const timezones = [
   '(GMT+00:00) London',
 ]
 
+//static currencies
 const currencies = [
   'USD',
   'EUR',
@@ -98,6 +123,35 @@ const currencies = [
   'HUF',
   'INR',
 ]
+
+// Fetch user data from Laravel API
+const fetchUserData = async () => {
+  try {
+    await authStore.fetchUser() // Calls your existing auth store method
+
+    if (authStore.user) {
+      accountDataLocal.value = {
+        avatarImg: authStore.user.avatar || '', 
+        firstName: authStore.user.name || '',
+        lastName: authStore.user.last_name || '',
+        email: authStore.user.email || '',
+        org: authStore.user.organization || '',
+        phone: authStore.user.phone || '',
+        address: authStore.user.address || '',
+        state: authStore.user.state || '',
+        zip: authStore.user.zip || '',
+        country: authStore.user.country || '',
+        language: authStore.user.language || '',
+        timezone: authStore.user.timezone || '',
+        currency: authStore.user.currency || '',
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch user data:', error)
+  }
+}
+
+onMounted(fetchUserData)
 </script>
 
 <template>

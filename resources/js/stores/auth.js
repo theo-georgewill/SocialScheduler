@@ -3,10 +3,12 @@ import { defineStore } from 'pinia';
 
 export const useAuthStore = defineStore('auth', {
 	state: () => ({
-		user: null,
+		user: JSON.parse(localStorage.getItem('user')) || null, //get the user from local storage if it exists
+		socialAccounts: JSON.parse(localStorage.getItem('socialAccounts')) || [],
 	}),
 
 	actions: {
+		//register user
 		async register(userData) {
 			try {
 			  // 1️⃣ Fetch CSRF token
@@ -38,7 +40,7 @@ export const useAuthStore = defineStore('auth', {
 			}
 		},
 		  
-
+		//login user
 		async login(userData) {
 			try {
 				// 1️⃣ Request CSRF cookie to initialize CSRF protection
@@ -66,6 +68,7 @@ export const useAuthStore = defineStore('auth', {
 			}
 		},
 
+		//logout user
 		async logout() {
 			try {
 				// Send logout request to invalidate the session on the backend
@@ -75,12 +78,15 @@ export const useAuthStore = defineStore('auth', {
 				});
 
 				this.user = null;
+				localStorage.removeItem('user'); // Clear stored user data
 				router.push('/login');
+
 			} catch (error) {
 				console.error('Logout failed:', error);
 			}
 		},
 
+		//fetch authenticated user details
 		async fetchUser() {
 			try {
 				// Fetch user details using the session cookie
@@ -91,17 +97,43 @@ export const useAuthStore = defineStore('auth', {
 					},
 				});
 
+        		// Check if response is OK and has content
 				if (!response.ok) {
 					throw new Error(`User fetch failed: ${response.statusText}`);
 				}
 
 				this.user = await response.json();
+				// Store user in localStorage for persistence
+				localStorage.setItem('user', JSON.stringify(this.user));
 			} catch (error) {
 				console.error('Failed to fetch user:', error);
 			}
 		},
 
-		
+		//fetch authenticated user's social accounts 
+		async fetchSocialAccounts() {
+			try {
+			  const response = await fetch('/api/social-accounts', {
+				credentials: 'include',
+				headers: { 'Accept': 'application/json' },
+			  });
+		  
+			  if (!response.ok) throw new Error('Failed to fetch accounts');
+		  
+			  this.socialAccounts = await response.json();
+			  localStorage.setItem('socialAccounts', JSON.stringify(this.socialAccounts));
+			} catch (error) {
+			  console.error('Error fetching accounts:', error);
+			}
+		},
+		  
+		hydrateFromLocalStorage() {
+			const storedAccounts = localStorage.getItem('socialAccounts');
+			if (storedAccounts) {
+			  this.socialAccounts = JSON.parse(storedAccounts);
+			}
+		}
+		  
 		
 	},
 });

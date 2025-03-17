@@ -105,5 +105,6 @@
         "borderStyle": "solid"
       }
     ]
-  }
+  },
+  "svn.ignoreMissingSvnWarning": true
 }
