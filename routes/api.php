@@ -5,6 +5,7 @@ use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use App\Http\Controllers\FileUploadController;
+use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\SocialAccountController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\AuthController;
@@ -23,17 +24,25 @@ Route::middleware([
         return $request->user();
     });
 
-    Route::middleware('auth:sanctum')->group(function () {
-        // Social Accounts
-        Route::get('/social-accounts', [SocialAccountController::class, 'index']);
-        Route::post('/social-accounts/connect', [SocialAccountController::class, 'connect']);
-        Route::delete('/social-accounts/{id}', [SocialAccountController::class, 'disconnect']);
 
-        // Posts
-        Route::get('/posts', [PostController::class, 'index']);
-        Route::post('/posts', [PostController::class, 'store']);
-        Route::delete('/posts/{id}', [PostController::class, 'destroy']);
-    });
+    Route::get('/auth/facebook/redirect', [SocialAuthController::class, 'redirectToFacebook']);
+    Route::get('/auth/reddit/redirect', [SocialAuthController::class, 'redirectToReddit']);
+    Route::get('/auth/reddit/callback', [SocialAuthController::class, 'handleRedditCallback']);
+    Route::get('/auth/facebook/callback', [SocialAuthController::class, 'handleFacebookCallback']);
+    // Social Media Authentication Routes
+    #Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirectToProvider']);
+    #Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'handleProviderCallback']);
+
+    // Social Accounts
+    Route::get('/social-accounts', [SocialAccountController::class, 'index']);
+    Route::post('/social-accounts/connect', [SocialAccountController::class, 'connect']);
+    Route::delete('/social-accounts/{id}', [SocialAccountController::class, 'disconnect']);
+
+    
+    // Posts
+    Route::get('/posts', [PostController::class, 'index']);
+    Route::post('/posts', [PostController::class, 'store']);
+    Route::delete('/posts/{id}', [PostController::class, 'destroy']);
 
     // Routes that do not require session (if any)
     Route::post('/upload-files', [FileUploadController::class, 'upload']);

@@ -16,13 +16,14 @@ class SocialAccount extends Model
         'provider',        // The platform (e.g., 'facebook', 'twitter')
         'provider_id',     // Unique ID from the provider (e.g., Facebook user ID)
         'username',        // The user's social media username
-        'token',           // Access token for API requests
-        'token_expires_at',// Token expiration date
+        'access_token',           // Access token for API requests
+        'refresh_token',     // Refresh token (for refreshing expired tokens)
+        'expires_at',// Token expiration date
         'is_deleted'       // Soft delete flag (false by default, true when "deleted")
     ];
 
     protected $casts = [
-        'token_expires_at' => 'datetime',
+        'expires_at' => 'datetime',
         'is_deleted' => 'boolean'
     ];
 
