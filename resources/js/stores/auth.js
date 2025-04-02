@@ -1,3 +1,4 @@
+import api from '@/api'; // Import Axios instance
 import { router } from '@/plugins/router';
 import { defineStore } from 'pinia';
 
@@ -9,7 +10,7 @@ export const useAuthStore = defineStore('auth', {
 	actions: {
 		async loginWithProvider(provider) {
 			try {
-			  const response = await fetch(`http://localhost:8000/api/auth/${provider}/redirect`);
+			  const response = await api.get(`/auth/${provider}/redirect`);
 			  const data = await response.json();
 			  
 			  // Redirect user to social login page
@@ -21,7 +22,7 @@ export const useAuthStore = defineStore('auth', {
 	  
 		async handleCallback(provider, code) {
 			try {
-				const response = await fetch(`http://localhost:8000/api/auth/${provider}/callback?code=${code}`);
+				const response = await api.get(`/auth/${provider}/callback?code=${code}`);
 				const data = await response.json();
 			
 				console.log("API Response:", data); // Debugging
@@ -123,6 +124,8 @@ export const useAuthStore = defineStore('auth', {
 
 				this.user = null;
 				localStorage.removeItem('user'); // Clear stored user data
+				localStorage.removeItem('accessToken'); // Clear stored social auth data
+				localStorage.removeItem('token'); // Clear stored token data
 				router.push('/login');
 
 			} catch (error) {

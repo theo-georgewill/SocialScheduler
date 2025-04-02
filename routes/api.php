@@ -15,6 +15,7 @@ Route::middleware([
     StartSession::class, // explicitly start the session
     'api',
     SubstituteBindings::class,
+    //'auth:sanctum'
 ])->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -24,6 +25,7 @@ Route::middleware([
         return $request->user();
     });
 
+    
 
     Route::get('/auth/facebook/redirect', [SocialAuthController::class, 'redirectToFacebook']);
     Route::get('/auth/reddit/redirect', [SocialAuthController::class, 'redirectToReddit']);

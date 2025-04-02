@@ -1,6 +1,5 @@
-import { defineStore } from 'pinia';
-import { useAuthStore } from './auth';
 import api from '@/api'; // Import Axios instance
+import { defineStore } from 'pinia';
 
 export const useSocialAccounts = defineStore('socialAccounts', {
   state: () => ({
@@ -14,8 +13,9 @@ export const useSocialAccounts = defineStore('socialAccounts', {
     async fetchAccounts() {
       this.loading = true;
       try {
-        const response = await api.get('/social-accounts'); // No need to add headers manually
-        if (Array.isArray(response.data)) {
+        const response = await api.get('/social-accounts');
+        console.log(JSON.stringify(response.data));
+		if (Array.isArray(response.data)) {
           this.accounts = response.data;
         }
       } catch (error) {
@@ -24,6 +24,21 @@ export const useSocialAccounts = defineStore('socialAccounts', {
         this.loading = false;
       }
     },
+	async connectAccount(accountData) {
+		this.loading = true;
+		try {
+		  const response = await api.post('/social-accounts', accountData);
+		  if (response.status === 200) {
+			this.accounts.push(response.data.account);
+			this.showSnackbar('Account connected successfully', 'success');
+		  }
+		} catch (error) {
+		  console.error("Connection failed:", error);
+		  this.showSnackbar('Error connecting account', 'error');
+		} finally {
+		  this.loading = false;
+		}
+	},
 
     async disconnectAccount(id) {
       this.loading = true;

@@ -14,7 +14,8 @@ class SocialAccountController extends Controller
     public function index()
     {
         return response()->json(
-            SocialAccount::where('user_id', Auth::id())->where('is_deleted', false)->get()
+            //SocialAccount::where('user_id', Auth::id())->where('is_deleted', false)->get()
+            ["id" => Auth::id()]
         );
     }
 

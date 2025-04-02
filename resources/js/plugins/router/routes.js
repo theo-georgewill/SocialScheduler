@@ -62,7 +62,7 @@ export const routes = [
     component: () => import('@/layouts/blank.vue'),
     children: [
       {
-        path: '/auth/callback',
+        path: 'auth/callback',
         component: () => import('@/pages/AuthCallback.vue'),
       },
       {

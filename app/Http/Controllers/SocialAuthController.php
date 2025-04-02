@@ -98,6 +98,10 @@ class SocialAuthController extends Controller
                 ]
             );
 
+
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            //Auth::login($user);
             /*
             return response()->json([
                 'user' => $user,
@@ -106,7 +110,7 @@ class SocialAuthController extends Controller
             ]);
             */
             // Redirect to Vue app with token in the URL
-            return redirect()->to("/auth/callback?token=$accessToken&user=" . urlencode(json_encode($user)));
+            return redirect()->to("/auth/callback?provider=facebook&token=$token&accessToken=$accessToken&user=" . urlencode(json_encode($user)));
 
         } catch (\Exception $e) {
             return response()->json(['error' => 'Facebook authentication failed', 'message' => $e->getMessage()], 401);
