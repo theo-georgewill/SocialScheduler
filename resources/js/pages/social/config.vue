@@ -1,6 +1,6 @@
 <script setup>
-import { ref, onMounted } from 'vue';
 import { useSocialAccounts } from '@/stores/socialAccounts'; // Import the Pinia store
+import { onMounted } from 'vue';
 
 const socialAccountsStore = useSocialAccounts(); // Initialize store
 
@@ -23,15 +23,16 @@ onMounted(() => {
 							<v-list-item-subtitle>{{ account.username }}</v-list-item-subtitle>
 						</v-list-item-content>
 						<v-list-item-action>
-							<!-- Checkbox for selecting accounts -->
-							<v-checkbox
-								v-model="socialAccountsStore.selectedAccounts"
-								:value="account.id"
-								label="Use for Posting"
-							></v-checkbox>
-							<v-btn color="red" @click="socialAccountsStore.disconnectAccount(account.id)">
-								Disconnect
-							</v-btn>
+							<div class="d-flex align-center justify-end"><!-- Checkbox for selecting accounts -->
+								<v-checkbox
+									v-model="socialAccountsStore.selectedAccounts"
+									:value="account.id"
+									label="Use for Posting"
+								></v-checkbox>
+								<v-btn color="error" class="ms-3" @click="socialAccountsStore.disconnectAccount(account.id)">
+									Disconnect
+								</v-btn>
+							</div>
 						</v-list-item-action>
 					</v-list-item>
 				</v-list>

@@ -10,6 +10,7 @@ use App\Http\Controllers\SocialAccountController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\AuthController;
 
+
 Route::middleware([
     EnsureFrontendRequestsAreStateful::class,  // Initializes session and CSRF protection for SPA requests
     StartSession::class, // explicitly start the session
@@ -17,9 +18,11 @@ Route::middleware([
     SubstituteBindings::class,
     //'auth:sanctum'
 ])->group(function () {
+    
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
     Route::get('/user', function (Request $request) {
         return $request->user();
@@ -29,8 +32,8 @@ Route::middleware([
 
     Route::get('/auth/facebook/redirect', [SocialAuthController::class, 'redirectToFacebook']);
     Route::get('/auth/reddit/redirect', [SocialAuthController::class, 'redirectToReddit']);
-    Route::get('/auth/reddit/callback', [SocialAuthController::class, 'handleRedditCallback']);
     Route::get('/auth/facebook/callback', [SocialAuthController::class, 'handleFacebookCallback']);
+    Route::get('/auth/reddit/callback', [SocialAuthController::class, 'handleRedditCallback']);
     // Social Media Authentication Routes
     #Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirectToProvider']);
     #Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'handleProviderCallback']);

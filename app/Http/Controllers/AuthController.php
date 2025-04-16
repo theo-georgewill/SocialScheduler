@@ -68,8 +68,33 @@ class AuthController extends Controller
         // Invalidate the session and regenerate the CSRF token
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+		// // Revoke the current token
+		$request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Logged out successfully'], 200);
+    }
+
+    // Reset the users password using their email 
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+        $email = $request->email;
+        $new_password = $request->password;
+
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+
+        $user->password = Hash::make($new_password);
+        $user->save();
+
+
+        return response()->json(['message' => 'Password reset successfully.']);
     }
 
     // Get the authenticated user

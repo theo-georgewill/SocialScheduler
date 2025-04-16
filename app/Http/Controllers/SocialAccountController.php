@@ -5,18 +5,30 @@ namespace App\Http\Controllers;
 use App\Models\SocialAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+
 
 class SocialAccountController extends Controller
 {
     /**
      * Get all connected social media accounts for the authenticated user.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(
-            //SocialAccount::where('user_id', Auth::id())->where('is_deleted', false)->get()
-            ["id" => Auth::id()]
-        );
+        $userId = $request->query('user_id');
+
+        if (!$userId) {
+            return response()->json(['message' => 'User ID is required'], 400);
+        }
+
+        $user = User::find($userId);
+        $socialAccount = SocialAccount::where('user_id', $userId)->get();
+
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        return response()->json($socialAccount);
     }
 
     /**

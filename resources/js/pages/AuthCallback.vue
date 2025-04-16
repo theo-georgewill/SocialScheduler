@@ -9,18 +9,15 @@ const auth = useAuthStore();
 
 onMounted(() => {
 	const provider = route.query.provider;
-  	const token = route.query.token;
+	const user = JSON.parse(decodeURIComponent(route.query.user));
 	const accessToken = route.query.accessToken;
-  	const user = JSON.parse(decodeURIComponent(route.query.user));
+	const token = route.query.token;
 
   if (token) {
 	auth.token = token;
 	auth.user = user;
 	
-	localStorage.setItem('user', JSON.stringify(user));
-	localStorage.setItem('accessToken', JSON.stringify(accessToken));
-	localStorage.setItem('token', JSON.stringify(token));
-
+	auth.handleCallback(provider, token, accessToken, user)
 	// Redirect to dashboard
 	router.push('/dashboard');
   } else {

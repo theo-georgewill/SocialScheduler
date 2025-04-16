@@ -5,6 +5,7 @@ import { defineStore } from 'pinia';
 export const useAuthStore = defineStore('auth', {
 	state: () => ({
 		user: JSON.parse(localStorage.getItem('user')) || null, //get the user from local storage if it exists
+		token: localStorage.getItem('token') || null, //get the user from local storage if it exists
 	}),
 
 	actions: {
@@ -20,33 +21,25 @@ export const useAuthStore = defineStore('auth', {
 			}
 		},
 	  
-		async handleCallback(provider, code) {
+		async handleCallback(provider, token, accessToken, user) {
 			try {
-				const response = await api.get(`/auth/${provider}/callback?code=${code}`);
-				const data = await response.json();
-			
-				console.log("API Response:", data); // Debugging
-			
-				// Ensure response has required fields
-				if (!data.access_token || !data.user) {
-					console.error("Missing token or user data in response");
-					return;
-				}
+				// Log the received data for debugging
+				console.log('Callback received:', { provider, token, accessToken, user });
 			
 				// Save token and user info in state
-				this.token = data.token;
-				this.access_token = data.access_token;
-				this.user = data.user;
+				this.token = token;
+				this.access_token = accessToken;
+				this.user = user;
 			
 				// Store token and user in localStorage
-				localStorage.setItem("token", data.token);
-				localStorage.setItem("access_token", data.access_token);
-				localStorage.setItem("user", JSON.stringify(data.user));
+				localStorage.setItem("token", token);
+				localStorage.setItem("access_token", accessToken);
+				localStorage.setItem("user", JSON.stringify(user));
 			
 				console.log("Stored in localStorage:", localStorage.getItem("token"), localStorage.getItem("user"));
 			
 				// Redirect to the dashboard (or any protected page)
-				this.$router.push("/");
+				router.push("/dashboard");
 			} catch (error) {
 			console.error("Callback handling failed:", error);
 			}
@@ -124,7 +117,7 @@ export const useAuthStore = defineStore('auth', {
 
 				this.user = null;
 				localStorage.removeItem('user'); // Clear stored user data
-				localStorage.removeItem('accessToken'); // Clear stored social auth data
+				localStorage.removeItem('access_token'); // Clear stored social auth data
 				localStorage.removeItem('token'); // Clear stored token data
 				router.push('/login');
 

@@ -75,7 +75,7 @@ class SocialAuthController extends Controller
                 ]
             );
 
-            // Generate a unique username if not provided
+            // Generate a unique username
             $baseUsername = Str::slug($socialUser->getNickname() ?? $socialUser->getName(), '_');
             $username = $baseUsername;
             $count = 1;
@@ -101,7 +101,7 @@ class SocialAuthController extends Controller
 
             $token = $user->createToken('auth-token')->plainTextToken;
 
-            //Auth::login($user);
+            Auth::login($user);
             /*
             return response()->json([
                 'user' => $user,
