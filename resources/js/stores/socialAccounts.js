@@ -16,29 +16,45 @@ export const useSocialAccounts = defineStore('socialAccounts', {
 			try {
 				const user = JSON.parse(localStorage.getItem('user'));
 				const userId = user?.id;
-
+				const token = localStorage.getItem('token');
+		
 				if (!userId) throw new Error('No user ID found in localStorage');
-
-				const response = await api.get(`/social-accounts?user_id=${userId}`);
+		
+				const response = await api.get(`/social-accounts?user_id=${userId}`, {
+					headers: {
+						'Authorization': `Bearer ${token}`, // Use the appropriate token if needed
+					},
+				});
 				console.log(JSON.stringify(response.data));
-				if (Array.isArray(response.data)) {
-				this.accounts = response.data;
+		
+				// Assuming the response contains the social accounts and the authenticated user
+				if (response.data && Array.isArray(response.data.social_accounts)) {
+					this.accounts = response.data.social_accounts;
+					
+					const authenticatedUser = response.data.authenticated_user;
+					console.log('Authenticated User:', authenticatedUser);
 				}
 			} catch (error) {
 				console.error("Fetch error:", error);
-				this.showSnackbar('Failed to fetch social accounts', 'error');			
+				this.showSnackbar('Failed to fetch social accounts', 'error');            
 			} finally {
 				this.loading = false;
 			}
 		},
-		async connectAccount(accountData) {
+		
+		async connectAccount(provider) {
 			this.loading = true;
 			try {
-				const response = await api.post('/social-accounts', accountData);
-				if (response.status === 200) {
-				this.accounts.push(response.data.account);
-				this.showSnackbar('Account connected successfully', 'success');
-				}
+				const user = JSON.parse(localStorage.getItem('user'));
+				const userId = user?.id;
+
+
+				const response = await api.get(`/auth/${provider}/redirect?user_id=${userId}`);
+				
+				const data = response.data;
+			  
+				// Redirect user to social login page
+				window.location.href = data.url;
 			} catch (error) {
 				console.error("Connection failed:", error);
 				this.showSnackbar('Error connecting account', 'error');

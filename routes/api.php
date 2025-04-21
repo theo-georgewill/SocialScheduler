@@ -34,14 +34,16 @@ Route::middleware([
     Route::get('/auth/reddit/redirect', [SocialAuthController::class, 'redirectToReddit']);
     Route::get('/auth/facebook/callback', [SocialAuthController::class, 'handleFacebookCallback']);
     Route::get('/auth/reddit/callback', [SocialAuthController::class, 'handleRedditCallback']);
-    // Social Media Authentication Routes
-    #Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirectToProvider']);
-    #Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'handleProviderCallback']);
 
     // Social Accounts
     Route::get('/social-accounts', [SocialAccountController::class, 'index']);
-    Route::post('/social-accounts/connect', [SocialAccountController::class, 'connect']);
+    Route::get('/{provider}/connect', [SocialAccountController::class, 'connect']);
     Route::delete('/social-accounts/{id}', [SocialAccountController::class, 'disconnect']);
+
+    Route::get('/connect/facebook', [SocialAccountController::class, 'connectFacebookAccount']);
+    Route::delete('/disconnect/facebook/{id}', [SocialAccountController::class, 'disconnectFacebookAccount']);
+    Route::get('/connect/reddit', [SocialAccountController::class, 'connectRedditAccount']);
+    Route::delete('/disconnect/reddit/{id}', [SocialAccountController::class, 'disconnectRedditAccount']);
 
     
     // Posts

@@ -24,12 +24,12 @@ export const routes = [
         component: () => import('@/pages/posts/scheduler.vue'),
       },
       {
-        path: 'account-config',
-        component: () => import('@/pages/social/config.vue'),
-      },
-      {
         path: 'calendar',
         component: () => import('@/pages/calendar.vue'),
+      },
+      {
+        path: 'account-config',
+        component: () => import('@/pages/social/config.vue'),
       },
       {
         path: 'account-settings',

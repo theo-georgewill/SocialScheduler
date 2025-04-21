@@ -28,7 +28,10 @@ class SocialAccountController extends Controller
             return response()->json(['message' => 'User not found'], 404);
         }
 
-        return response()->json($socialAccount);
+        return response()->json([
+            'social_accounts' => $socialAccount,
+            'authenticated_user' => auth()->user(),
+        ]);
     }
 
     /**

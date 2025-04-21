@@ -18,12 +18,13 @@ onMounted(() => {
 				<!-- Display list of connected accounts -->
 				<v-list v-if="socialAccountsStore.accounts.length">
 					<v-list-item v-for="account in socialAccountsStore.accounts" :key="account.id">
-						<v-list-item-content>
-							<v-list-item-title>{{ account.provider }}</v-list-item-title>
-							<v-list-item-subtitle>{{ account.username }}</v-list-item-subtitle>
-						</v-list-item-content>
-						<v-list-item-action>
-							<div class="d-flex align-center justify-end"><!-- Checkbox for selecting accounts -->
+						<div class="d-flex">
+							<v-list-item-content>
+								<v-list-item-title>{{ account.provider }}</v-list-item-title>
+								<v-list-item-subtitle>{{ account.username }}</v-list-item-subtitle>
+							</v-list-item-content>
+							<v-list-item-action class="ms-auto">
+								<!-- Checkbox for selecting accounts -->
 								<v-checkbox
 									v-model="socialAccountsStore.selectedAccounts"
 									:value="account.id"
@@ -32,8 +33,8 @@ onMounted(() => {
 								<v-btn color="error" class="ms-3" @click="socialAccountsStore.disconnectAccount(account.id)">
 									Disconnect
 								</v-btn>
-							</div>
-						</v-list-item-action>
+							</v-list-item-action>
+						</div>
 					</v-list-item>
 				</v-list>
 				<v-alert v-else type="info">No connected accounts</v-alert>

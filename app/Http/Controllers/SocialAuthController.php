@@ -28,6 +28,32 @@ class SocialAuthController extends Controller
         $state = Str::random(40); // Generate a random state token
         Cache::put('oauth_state_' . $state, true, now()->addMinutes(10)); // Store in cache
 
+       
+        $baseRedirectUrl = "https://www.reddit.com/api/v1/authorize";
+        $params = [
+            'client_id' => env('REDDIT_CLIENT_ID'),
+            'response_type' => 'code',
+            'state' => $state,
+            'redirect_uri' => env('REDDIT_REDIRECT_URI'),
+            'duration' => 'permanent',
+            'scope' => 'identity,read,submit',
+        ];
+
+
+        if ($request->has('user_id')) {
+            $params['user_id'] = $request->input('user_id'); // Will be passed through
+        }
+
+        return response()->json([
+            'url' => $baseRedirectUrl . '?' . http_build_query($params),
+        ]);
+    }/*
+
+    public function redirectToReddit()
+    {
+        $state = Str::random(40); // Generate a random state token
+        Cache::put('oauth_state_' . $state, true, now()->addMinutes(10)); // Store in cache
+
         $url = "https://www.reddit.com/api/v1/authorize?" . http_build_query([
             'client_id' => env('REDDIT_CLIENT_ID'),
             'response_type' => 'code',
@@ -39,6 +65,7 @@ class SocialAuthController extends Controller
 
         return response()->json(['url' => $url]);
     }
+        */
 
     public function redirectToFacebook()
     {
@@ -118,9 +145,8 @@ class SocialAuthController extends Controller
     }
 
 
-    /**
-     * Handle Reddit Callback
-     */
+    /*
+     
     public function handleRedditCallback(Request $request)
     {
         try {
@@ -128,31 +154,76 @@ class SocialAuthController extends Controller
 
             // Store Reddit access token
             $accessToken = $socialUser->token;
+            $email = $socialUser->getEmail();
 
-            // Find or create user
-            $user = User::updateOrCreate(
-                ['email' => $socialUser->getEmail()],
-                [
-                    'name' => $socialUser->getName(),
-                    'password' => bcrypt(Str::random(16)),
-                    'provider' => 'reddit',
-                    'provider_id' => $socialUser->getId(),
-                    'provider_token' => $accessToken,
-                    'avatar' => $socialUser->getAvatar(),
-                ]
-            );
+            
+            if (User::where('email', $email)->exists()) {
+                // ✅ Connect Reddit to an already logged-in user
+                $user = User::where('email', $email)->first();
 
-            return response()->json([
-                'user' => $user,
-                'token' => $user->createToken('auth-token')->plainTextToken,
-                'reddit_access_token' => $accessToken,
-            ]);
+                // Store the connected Reddit account
+                SocialAccount::updateOrCreate(
+                    [
+                        'user_id' => $user->id,
+                        'provider' => 'reddit',
+                        'provider_id' => $socialUser->getId(),
+                    ],
+                    [
+                        'username' => $socialUser->getNickname() ?? $socialUser->getName(),
+                        'access_token' => $accessToken,
+                        'is_deleted' => false,
+                    ]
+                );
+        
+                return response()->json([
+                    'user' => $user,
+                    'token' => $user->createToken('reddit-auth-token')->plainTextToken,
+                    'message' => 'Reddit account connected successfully.',
+                    'reddit_access_token' => $accessToken,
+                ]);
+            } else {
+                // 🚀 Handle login or registration flow
+                $user = User::firstOrCreate(
+                    ['email' => $socialUser->getEmail()],
+                    [
+                        'name' => $socialUser->getName(),
+                        'password' => bcrypt(Str::random(16)),
+                        'provider' => 'reddit',
+                        'provider_id' => $socialUser->getId(),
+                        'provider_token' => $accessToken,
+                        'avatar' => $socialUser->getAvatar(),
+                    ]
+                );
+        
+                // Link Reddit account to the user
+                SocialAccount::updateOrCreate(
+                    [
+                        'user_id' => $user->id,
+                        'provider' => 'reddit',
+                        'provider_id' => $socialUser->getId(),
+                    ],
+                    [
+                        'username' => $socialUser->getNickname() ?? $socialUser->getName(),
+                        'access_token' => $accessToken,
+                        'is_deleted' => false,
+                    ]
+                );
+        
+                return response()->json([
+                    'user' => $user,
+                    'token' => $user->createToken('reddit-auth-token')->plainTextToken,
+                    'reddit_access_token' => $accessToken,
+                ]);
+            }
+        
         } catch (\Exception $e) {
             return response()->json(['error' => 'Reddit authentication failed'], 401);
         }
     }
+    */
 
-    /*
+    /* Handle Reddit Callback
+     */
     public function handleRedditCallback(Request $request)
     {
         // Validate the state parameter
@@ -194,6 +265,9 @@ class SocialAuthController extends Controller
 
         $data = $response->json();
         $accessToken = $data['access_token'] ?? null;
+        $refreshToken = $data['refresh_token'] ?? null;
+        $expiresIn = $data['expires_in'] ?? 3600;
+        $expiresAt = now()->addSeconds($expiresIn);
 
         if (!$accessToken) {
             return response()->json(['error' => 'No access token received'], 400);
@@ -217,14 +291,28 @@ class SocialAuthController extends Controller
             [
                 'name'        => $redditUser['name'],
                 'password'    => bcrypt(Str::random(16)),
-                'provider'    => 'reddit',
-                'provider_id' => $redditUser['id'],
                 'avatar'      => $redditUser['icon_img'] ?? null,
             ]
         );
 
+
+        // Find or create the social account
+        $socialAccount = SocialAccount::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'provider' => 'reddit',
+            ],
+            [
+                'provider_id' => $redditUser['id'],
+                'username' => $redditUser['name'], // Ensure username is never null
+                'access_token' => $accessToken,
+                'refresh_token' => $refreshToken,
+                'expires_at' => $expiresAt,
+            ]
+        );
+        
         // Generate API token
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $token = $user->createToken('reddit-auth-token')->plainTextToken;
 
         return response()->json([
             'user'               => $user,
@@ -232,7 +320,7 @@ class SocialAuthController extends Controller
             'reddit_access_token' => $accessToken, // Needed for API requests
         ]);
     }
-
+/*
     public function handleFacebookCallback(Request $request)
     {
         try {
