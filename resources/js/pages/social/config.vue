@@ -30,7 +30,7 @@ onMounted(() => {
 									:value="account.id"
 									label="Use for Posting"
 								></v-checkbox>
-								<v-btn color="error" class="ms-3" @click="socialAccountsStore.disconnectAccount(account.id)">
+								<v-btn color="error" class="ms-3" @click="socialAccountsStore.disconnectAccount(account.provider, account.id)">
 									Disconnect
 								</v-btn>
 							</v-list-item-action>

@@ -63,10 +63,20 @@ export const useSocialAccounts = defineStore('socialAccounts', {
 			}
 		},
 
-		async disconnectAccount(id) {
+		async disconnectAccount(provider, id) {
 			this.loading = true;
 			try {
-				const response = await api.delete(`/social-accounts/${id}`); // Token is auto-attached
+				const userId = JSON.parse(localStorage.getItem('user'))?.id; // Assumes user object is stored in localStorage
+		
+				if (!userId) {
+					this.showSnackbar('User not found in localStorage', 'error');
+					return;
+				}
+		
+				const response = await api.delete(`/disconnect/${provider}/${id}`, {
+					params: { user_id: userId }
+				});
+		
 				if (response.status === 200) {
 					this.accounts = this.accounts.filter(acc => acc.id !== id);
 					this.selectedAccounts = this.selectedAccounts.filter(accId => accId !== id);
@@ -80,6 +90,7 @@ export const useSocialAccounts = defineStore('socialAccounts', {
 				this.loading = false;
 			}
 		},
+		
 
 		showSnackbar(message, color = 'info') {
 			this.snackbar.message = message;

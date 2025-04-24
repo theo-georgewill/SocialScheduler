@@ -66,6 +66,10 @@ export const routes = [
         component: () => import('@/pages/AuthCallback.vue'),
       },
       {
+        path: 'social-account-callback',
+        component: () => import('@/pages/SocialAccountCallback.vue'),
+      },
+      {
         path: 'login',
         component: () => import('@/pages/login.vue'),
       },

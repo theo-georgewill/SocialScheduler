@@ -22,7 +22,7 @@ class SocialAccountController extends Controller
         }
 
         $user = User::find($userId);
-        $socialAccount = SocialAccount::where('user_id', $userId)->get();
+        $socialAccount = SocialAccount::where('user_id', $userId)->where('is_deleted', false)->get();
 
         if (!$user) {
             return response()->json(['message' => 'User not found'], 404);
@@ -65,11 +65,31 @@ class SocialAccountController extends Controller
     /**
      * Soft delete (disconnect) a social media account.
      */
-    public function disconnect($id)
-    {
-        $account = SocialAccount::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
-        $account->update(['is_deleted' => true]);
 
-        return response()->json(['message' => 'Account disconnected!']);
+    public function disconnect($provider, $id, Request $request)
+    {
+        $userId = $request->query('user_id');
+
+        if (!$userId) {
+            return response()->json(['error' => 'User ID is required'], 400);
+        }
+
+        // Find the social account that matches user, provider, and account ID
+        $account = SocialAccount::where('id', $id)
+            ->where('provider', $provider)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (!$account) {
+            return response()->json(['error' => 'Social account not found'], 404);
+        }
+
+        // Soft delete the account (set is_deleted to true)
+        $account->is_deleted = true;
+        $account->save();
+
+        return response()->json(['message' => 'Social account disconnected successfully'], 200);
     }
+
+    
 }

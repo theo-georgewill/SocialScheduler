@@ -43,7 +43,7 @@ Route::middleware([
     Route::get('/connect/facebook', [SocialAccountController::class, 'connectFacebookAccount']);
     Route::delete('/disconnect/facebook/{id}', [SocialAccountController::class, 'disconnectFacebookAccount']);
     Route::get('/connect/reddit', [SocialAccountController::class, 'connectRedditAccount']);
-    Route::delete('/disconnect/reddit/{id}', [SocialAccountController::class, 'disconnectRedditAccount']);
+    Route::delete('/disconnect/{provider}/{id}', [SocialAccountController::class, 'disconnect']);
 
     
     // Posts

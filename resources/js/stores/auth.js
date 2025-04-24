@@ -41,7 +41,7 @@ export const useAuthStore = defineStore('auth', {
 				// Redirect to the dashboard (or any protected page)
 				router.push("/dashboard");
 			} catch (error) {
-			console.error("Callback handling failed:", error);
+				console.error("Callback handling failed:", error);
 			}
 		},
 		  
