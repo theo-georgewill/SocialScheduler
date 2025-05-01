@@ -5,32 +5,33 @@ namespace App\Http\Controllers;
 use App\Models\SocialAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use App\Models\User;
 
 
 class SocialAccountController extends Controller
 {
-    /**
-     * Get all connected social media accounts for the authenticated user.
-     */
+    //Get all connected social media accounts for the authenticated user.
     public function index(Request $request)
     {
+        //$userId = $request->query('user_id', auth()->id()); // Default to the authenticated user's ID if not provided
+
         $userId = $request->query('user_id');
 
-        if (!$userId) {
-            return response()->json(['message' => 'User ID is required'], 400);
-        }
-
+        // Ensure the user exists
         $user = User::find($userId);
-        $socialAccount = SocialAccount::where('user_id', $userId)->where('is_deleted', false)->get();
-
         if (!$user) {
             return response()->json(['message' => 'User not found'], 404);
         }
 
+        // Retrieve social accounts that are not soft deleted (trashed)
+        $socialAccounts = SocialAccount::where('user_id', $userId)
+            ->whereNull('deleted_at') // Filter out soft-deleted accounts
+            ->get();
+
         return response()->json([
-            'social_accounts' => $socialAccount,
-            'authenticated_user' => auth()->user(),
+            'social_accounts' => $socialAccounts,
+            'authenticated_user' => $user,
         ]);
     }
 
@@ -62,10 +63,7 @@ class SocialAccountController extends Controller
         return response()->json(['message' => 'Account connected!', 'account' => $account]);
     }
 
-    /**
-     * Soft delete (disconnect) a social media account.
-     */
-
+    //Soft delete (disconnect) a social media account.
     public function disconnect($provider, $id, Request $request)
     {
         $userId = $request->query('user_id');
@@ -84,12 +82,10 @@ class SocialAccountController extends Controller
             return response()->json(['error' => 'Social account not found'], 404);
         }
 
-        // Soft delete the account (set is_deleted to true)
-        $account->is_deleted = true;
-        $account->save();
+        // Soft delete the account 
+        $account->delete();
 
         return response()->json(['message' => 'Social account disconnected successfully'], 200);
     }
 
-    
 }

@@ -4,28 +4,25 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes; 
 
 class Post extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'posts'; // Specify the table name
 
     protected $fillable = [
         'user_id',           // The user who created the post
-        'social_account_id', // The connected social account used to post
         'content',           // The post content (text, media URL, etc.)
         'media',             // JSON field for storing media URLs
-        'status',            // 'scheduled', 'posted', 'failed'
-        'scheduled_at',      // When the post is scheduled to go live
-        'posted_at',         // When the post was actually posted
-        'is_deleted'         // Soft delete instead of actually deleting records
+        'metadata', 
+        'scheduled_at',
     ];
 
     protected $casts = [
         'media' => 'array', // Ensure media is stored as JSON
-        'scheduled_at' => 'datetime',
-        'posted_at' => 'datetime',
+        'metadata' => 'array',
     ];
 
     // Relationships
@@ -34,8 +31,12 @@ class Post extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function socialAccount()
+    // Post.php
+    public function socialAccounts()
     {
-        return $this->belongsTo(SocialAccount::class);
+        return $this->belongsToMany(SocialAccount::class, 'post_social_account', 'post_id', 'social_account_id')
+        ->using(PostSocialAccount::class) // Using the pivot model
+        ->withPivot('status', 'published_at', 'error_message');
     }
+
 }

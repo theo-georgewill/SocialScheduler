@@ -28,9 +28,18 @@ class SocialAccount extends Model
         'is_deleted' => 'boolean'
     ];
 
+    protected $dates = ['deleted_at'];
+
     // Relationships
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function posts()
+    {
+        return $this->belongsToMany(Post::class, 'post_social_account', 'social_account_id', 'post_id')
+            ->using(PostSocialAccount::class)
+            ->withTimestamps();
     }
 }

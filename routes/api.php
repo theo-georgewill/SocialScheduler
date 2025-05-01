@@ -18,7 +18,7 @@ Route::middleware([
     SubstituteBindings::class,
     //'auth:sanctum'
 ])->group(function () {
-    
+    //1. Authentication & User Management
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/register', [AuthController::class, 'register']);
@@ -27,9 +27,10 @@ Route::middleware([
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+    Route::put('/user/settings', [AuthController::class, 'resetPassword']);
 
     
-
+    //2. Social Authentication & Account Integration
     Route::get('/auth/facebook/redirect', [SocialAuthController::class, 'redirectToFacebook']);
     Route::get('/auth/reddit/redirect', [SocialAuthController::class, 'redirectToReddit']);
     Route::get('/auth/facebook/callback', [SocialAuthController::class, 'handleFacebookCallback']);
@@ -38,18 +39,17 @@ Route::middleware([
     // Social Accounts
     Route::get('/social-accounts', [SocialAccountController::class, 'index']);
     Route::get('/{provider}/connect', [SocialAccountController::class, 'connect']);
-    Route::delete('/social-accounts/{id}', [SocialAccountController::class, 'disconnect']);
 
     Route::get('/connect/facebook', [SocialAccountController::class, 'connectFacebookAccount']);
     Route::delete('/disconnect/facebook/{id}', [SocialAccountController::class, 'disconnectFacebookAccount']);
     Route::get('/connect/reddit', [SocialAccountController::class, 'connectRedditAccount']);
     Route::delete('/disconnect/{provider}/{id}', [SocialAccountController::class, 'disconnect']);
-
     
-    // Posts
+    // 3. Post Creation & Scheduling
     Route::get('/posts', [PostController::class, 'index']);
     Route::post('/posts', [PostController::class, 'store']);
     Route::delete('/posts/{id}', [PostController::class, 'destroy']);
+    Route::post('/post/reddit/{id}', [PostController::class, 'publishToReddit']);
 
     // Routes that do not require session (if any)
     Route::post('/upload-files', [FileUploadController::class, 'upload']);

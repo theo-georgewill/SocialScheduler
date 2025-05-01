@@ -1,4 +1,4 @@
-import api from '@/api'; // Import Axios instance
+import api from '@/api';
 import { router } from '@/plugins/router';
 import { defineStore } from 'pinia';
 

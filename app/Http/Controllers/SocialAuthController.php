@@ -13,43 +13,7 @@ use Illuminate\Support\Facades\Http;
 
 class SocialAuthController extends Controller
 {
-    public function redirectToProvider($provider)
-    {    
-        return response()->json([
-            'url' => Socialite::driver($provider)
-            ->stateless()
-            ->redirect()
-            ->getTargetUrl()
-        ]);
-    }
-/*
-    public function redirectToReddit()
-    {
-        $state = Str::random(40); // Generate a random state token
-        Cache::put('oauth_state_' . $state, true, now()->addMinutes(10)); // Store in cache
-
-       
-        $baseRedirectUrl = "https://www.reddit.com/api/v1/authorize";
-        $params = [
-            'client_id' => env('REDDIT_CLIENT_ID'),
-            'response_type' => 'code',
-            'state' => $state,
-            'redirect_uri' => env('REDDIT_REDIRECT_URI'),
-            'duration' => 'permanent',
-            'scope' => 'identity,read,submit',
-        ];
-
-
-        if ($request->has('user_id')) {
-            $params['user_id'] = $request->input('user_id'); // Will be passed through
-        }
-
-        return response()->json([
-            'url' => $baseRedirectUrl . '?' . http_build_query($params),
-        ]);
-    }
-        */
-
+    // Handle Facebook Redirect
     public function redirectToReddit(Request $request)
     {
         $state = Str::random(40); // Generate a random state token
@@ -73,7 +37,152 @@ class SocialAuthController extends Controller
         return response()->json(['url' => $url]);
     }
         
+    // Handle Reddit Callback
+    public function handleRedditCallback(Request $request)
+    {
+        // Validate the state parameter to prevent CSRF attacks
+        $state = $request->input('state');
+        $cachedState = Cache::pull('oauth_state_' . $state);
 
+        if (!$state || !$cachedState) {
+            return response()->json(['error' => 'Invalid state'], 400);
+        }
+
+        // Check for authorization errors
+        if ($request->has('error')) {
+            return response()->json(['error' => $request->input('error')], 400);
+        }
+
+        // Get the authorization code
+        $code = $request->input('code');
+        if (!$code) {
+            return response()->json(['error' => 'No authorization code received'], 400);
+        }
+
+        // Exchange authorization code for an access token
+        $clientId = env('REDDIT_CLIENT_ID');
+        $clientSecret = env('REDDIT_CLIENT_SECRET');
+        $redirectUri = env('REDDIT_REDIRECT_URI');
+
+        try {
+            $response = Http::withBasicAuth($clientId, $clientSecret)
+                ->asForm()
+                ->post('https://www.reddit.com/api/v1/access_token', [
+                    'grant_type'    => 'authorization_code',
+                    'code'          => $code,
+                    'redirect_uri'  => $redirectUri,
+                ]);
+            
+            if ($response->failed()) {
+                return response()->json([
+                    'error' => 'Failed to get access token',
+                    'details' => $response->json()
+                ], 400);
+            }
+
+            $data = $response->json();
+            $accessToken = $data['access_token'] ?? null;
+            $refreshToken = $data['refresh_token'] ?? null;
+            $expiresIn = $data['expires_in'] ?? 3600;
+            $expiresAt = now()->addSeconds($expiresIn);
+
+            if (!$accessToken) {
+                return response()->json(['error' => 'No access token received'], 400);
+            }
+
+            // Fetch Reddit user data
+            $userResponse = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $accessToken,
+                'User-Agent'    => 'Autobuzz/1.0 by TTG',
+            ])->get('https://oauth.reddit.com/api/v1/me');
+            
+            // Retry logic if rate-limited
+            if ($userResponse->status() == 429) {
+                return response()->json(['error' => 'Rate limit exceeded, please try again later.'], 429);
+            }
+
+            if ($userResponse->failed()) {
+                return response()->json(['error' => 'Failed to fetch user details', 'details' => $userResponse->json()], 400);
+            }
+
+            $redditUser = $userResponse->json();
+
+            // Get the user JSON from cache to check if it exists
+            $cachedUserID = $cachedState['user_id'] ?? null;
+
+            if ($cachedUserID) {
+                // CONNECT flow: User is already registered, we just add the social account
+                $user = User::findOrFail($cachedUserID); // Use the user ID from the cache
+
+                // Check if the Reddit account is already connected to the user
+                $socialAccount = SocialAccount::withTrashed()->firstOrCreate(
+                    [
+                        'user_id' => $user->id,
+                        'provider' => 'reddit',
+                    ],
+                    [
+                        'provider_id' => $redditUser['id'],
+                        'username' => $redditUser['name'],
+                        'access_token' => $accessToken,
+                        'refresh_token' => $refreshToken,
+                        'expires_at' => $expiresAt,
+                    ]
+                );
+                
+                // Check if the account was soft deleted
+                if ($socialAccount->trashed()) {
+                    // Restore the soft-deleted account if it exists
+                    $socialAccount->restore();
+                }
+                
+
+                // Redirect to Vue app with token in the URL
+                return redirect()->to("/social-account-callback");
+            } else {
+                // LOGIN/REGISTRATION flow: User doesn't exist, create a new one
+                $user = User::updateOrCreate(
+                    ['email' => $redditUser['id'] . '@reddit.com'], // Use Reddit ID as email
+                    [
+                        'name'        => $redditUser['name'],
+                        'password'    => bcrypt(Str::random(16)),
+                        'avatar'      => $redditUser['icon_img'] ?? null,
+                    ]
+                );
+
+                // Create a new social account linked to the newly created user
+                $socialAccount = SocialAccount::create([
+                    'user_id' => $user->id,
+                    'provider' => 'reddit',
+                    'provider_id' => $redditUser['id'],
+                    'username' => $redditUser['name'],
+                    'access_token' => $accessToken,
+                    'refresh_token' => $refreshToken,
+                    'expires_at' => $expiresAt,
+                ]);
+
+                // Generate API token for the new user
+                $token = $user->createToken('reddit-auth-token')->plainTextToken;
+
+                /*
+                return response()->json([
+                    'message' => 'Auth flow initiated',
+                    'cached_user' => $cachedUser,
+                    'user' => $user,
+                    'token' => $token,
+                    'social_account' => $socialAccount,
+                ]);
+                */
+                
+                // Redirect to Vue app with token in the URL
+                return redirect()->to("/auth/callback?provider=reddit&token=$token&accessToken=$code&user=" . urlencode(json_encode($user)));
+
+            }
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'An error occurred during the process', 'details' => $e->getMessage()], 500);
+        }
+    }
+
+    // Handle Facebook Redirect
     public function redirectToFacebook()
     {
     
@@ -85,9 +194,7 @@ class SocialAuthController extends Controller
         ]);
     }
 
-    /**
-     * Handle Facebook Callback
-     */
+    //Handle Facebook Callback
     public function handleFacebookCallback(Request $request)
     {
         try {
@@ -146,347 +253,31 @@ class SocialAuthController extends Controller
     }
 
 
-    /*
-     
-    public function handleRedditCallback(Request $request)
-    {
-        try {
-            $socialUser = Socialite::driver('reddit')->stateless()->user();
-
-            // Store Reddit access token
-            $accessToken = $socialUser->token;
-            $email = $socialUser->getEmail();
-
-            
-            if (User::where('email', $email)->exists()) {
-                // ✅ Connect Reddit to an already logged-in user
-                $user = User::where('email', $email)->first();
-
-                // Store the connected Reddit account
-                SocialAccount::updateOrCreate(
-                    [
-                        'user_id' => $user->id,
-                        'provider' => 'reddit',
-                        'provider_id' => $socialUser->getId(),
-                    ],
-                    [
-                        'username' => $socialUser->getNickname() ?? $socialUser->getName(),
-                        'access_token' => $accessToken,
-                        'is_deleted' => false,
-                    ]
-                );
-        
-                return response()->json([
-                    'user' => $user,
-                    'token' => $user->createToken('reddit-auth-token')->plainTextToken,
-                    'message' => 'Reddit account connected successfully.',
-                    'reddit_access_token' => $accessToken,
-                ]);
-            } else {
-                // 🚀 Handle login or registration flow
-                $user = User::firstOrCreate(
-                    ['email' => $socialUser->getEmail()],
-                    [
-                        'name' => $socialUser->getName(),
-                        'password' => bcrypt(Str::random(16)),
-                        'provider' => 'reddit',
-                        'provider_id' => $socialUser->getId(),
-                        'provider_token' => $accessToken,
-                        'avatar' => $socialUser->getAvatar(),
-                    ]
-                );
-        
-                // Link Reddit account to the user
-                SocialAccount::updateOrCreate(
-                    [
-                        'user_id' => $user->id,
-                        'provider' => 'reddit',
-                        'provider_id' => $socialUser->getId(),
-                    ],
-                    [
-                        'username' => $socialUser->getNickname() ?? $socialUser->getName(),
-                        'access_token' => $accessToken,
-                        'is_deleted' => false,
-                    ]
-                );
-        
-                return response()->json([
-                    'user' => $user,
-                    'token' => $user->createToken('reddit-auth-token')->plainTextToken,
-                    'reddit_access_token' => $accessToken,
-                ]);
-            }
-        
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Reddit authentication failed'], 401);
-        }
-    }
-    */
-
-    /* Handle Reddit Callback
+    /**
+     * Redirect the user to the OAuth provider.
      */
-    public function handleRedditCallback(Request $request)
+    public function redirect($provider)
     {
-        // Validate the state parameter to prevent CSRF attacks
-        $state = $request->input('state');
-        $cachedState = Cache::pull('oauth_state_' . $state);
-
-        if (!$state || !$cachedState) {
-            return response()->json(['error' => 'Invalid state'], 400);
+        // Ensure the user is authenticated
+        if (!auth()->check()) {
+            return redirect('/login')->with('error', 'You must be logged in to connect accounts.');
         }
-
-        // Check for authorization errors
-        if ($request->has('error')) {
-            return response()->json(['error' => $request->input('error')], 400);
-        }
-
-        // Get the authorization code
-        $code = $request->input('code');
-        if (!$code) {
-            return response()->json(['error' => 'No authorization code received'], 400);
-        }
-
-        // Exchange authorization code for an access token
-        $clientId = env('REDDIT_CLIENT_ID');
-        $clientSecret = env('REDDIT_CLIENT_SECRET');
-        $redirectUri = env('REDDIT_REDIRECT_URI');
-
-        try {
-            $response = Http::withBasicAuth($clientId, $clientSecret)
-                ->asForm()
-                ->post('https://www.reddit.com/api/v1/access_token', [
-                    'grant_type'    => 'authorization_code',
-                    'code'          => $code,
-                    'redirect_uri'  => $redirectUri,
-                ]);
-            
-            if ($response->failed()) {
-                return response()->json([
-                    'error' => 'Failed to get access token',
-                    'details' => $response->json()
-                ], 400);
-            }
-
-            $data = $response->json();
-            $accessToken = $data['access_token'] ?? null;
-            $refreshToken = $data['refresh_token'] ?? null;
-            $expiresIn = $data['expires_in'] ?? 3600;
-            $expiresAt = now()->addSeconds($expiresIn);
-
-            if (!$accessToken) {
-                return response()->json(['error' => 'No access token received'], 400);
-            }
-
-            // Fetch Reddit user data
-            $userResponse = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $accessToken,
-                'User-Agent'    => 'YourApp/1.0 by TTG',
-            ])->get('https://oauth.reddit.com/api/v1/me');
-            
-            // Retry logic if rate-limited
-            if ($userResponse->status() == 429) {
-                return response()->json(['error' => 'Rate limit exceeded, please try again later.'], 429);
-            }
-
-            if ($userResponse->failed()) {
-                return response()->json(['error' => 'Failed to fetch user details', 'details' => $userResponse->json()], 400);
-            }
-
-            $redditUser = $userResponse->json();
-
-            // Get the user JSON from cache to check if it exists
-            $cachedUser = $cachedState['user_id'] ?? null;
-
-            if ($cachedUser) {
-                // CONNECT flow: User is already registered, we just add the social account
-                $user = User::findOrFail($cachedUser); // Use the user ID from the cache
-
-                // Check if the Reddit account is already connected to the user
-                $socialAccount = SocialAccount::firstOrCreate(
-                    [
-                        'user_id' => $user->id,
-                        'provider' => 'reddit',
-                    ],
-                    [
-                        'provider_id' => $redditUser['id'],
-                        'username' => $redditUser['name'],
-                        'access_token' => $accessToken,
-                        'refresh_token' => $refreshToken,
-                        'expires_at' => $expiresAt,
-                    ]
-                );
-
-                // Redirect to Vue app with token in the URL
-                return redirect()->to("/social-account-callback");
-            } else {
-                // LOGIN/REGISTRATION flow: User doesn't exist, create a new one
-                $user = User::updateOrCreate(
-                    ['email' => $redditUser['id'] . '@reddit.com'], // Use Reddit ID as email
-                    [
-                        'name'        => $redditUser['name'],
-                        'password'    => bcrypt(Str::random(16)),
-                        'avatar'      => $redditUser['icon_img'] ?? null,
-                    ]
-                );
-
-                // Create a new social account linked to the newly created user
-                $socialAccount = SocialAccount::create([
-                    'user_id' => $user->id,
-                    'provider' => 'reddit',
-                    'provider_id' => $redditUser['id'],
-                    'username' => $redditUser['name'],
-                    'access_token' => $accessToken,
-                    'refresh_token' => $refreshToken,
-                    'expires_at' => $expiresAt,
-                ]);
-
-                // Generate API token for the new user
-                $token = $user->createToken('reddit-auth-token')->plainTextToken;
-
-                /*
-                return response()->json([
-                    'message' => 'Auth flow initiated',
-                    'cached_user' => $cachedUser,
-                    'user' => $user,
-                    'token' => $token,
-                    'social_account' => $socialAccount,
-                ]);
-                */
-                
-                // Redirect to Vue app with token in the URL
-                return redirect()->to("/auth/callback?provider=reddit&token=$token&accessToken=$code&user=" . urlencode(json_encode($user)));
-
-            }
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'An error occurred during the process', 'details' => $e->getMessage()], 500);
-        }
+    
+        // Store the logged-in user's ID in the session
+        session(['social_connect_user_id' => auth()->id()]);
+    
+        // Redirect to the OAuth provider
+        return Socialite::driver($provider)->scopes(['identity', 'submit'])->redirect();
     }
 
-
-    public function oldHandleRedditCallback(Request $request)
-    {
-        // Validate the state parameter
-        $state = $request->input('state');
-        if (!$state || !Cache::pull('oauth_state_' . $state)) {
-            return response()->json(['error' => 'Invalid state'], 400);
-        }
-
-        // Check for authorization errors
-        if ($request->has('error')) {
-            return response()->json(['error' => $request->input('error')], 400);
-        }
-
-        // Get the authorization code
-        $code = $request->input('code');
-        if (!$code) {
-            return response()->json(['error' => 'No authorization code received'], 400);
-        }
-
-        // Exchange authorization code for an access token
-        $clientId = env('REDDIT_CLIENT_ID');
-        $clientSecret = env('REDDIT_CLIENT_SECRET');
-        $redirectUri = env('REDDIT_REDIRECT_URI');
-
-        $response = Http::withBasicAuth($clientId, $clientSecret)
-            ->asForm()
-            ->post('https://www.reddit.com/api/v1/access_token', [
-                'grant_type'    => 'authorization_code',
-                'code'          => $code,
-                'redirect_uri'  => $redirectUri,
-            ]);
-
-        if ($response->failed()) {
-            return response()->json([
-                'error' => 'Failed to get access token',
-                'details' => $response->json()
-            ], 400);
-        }
-
-        $data = $response->json();
-        $accessToken = $data['access_token'] ?? null;
-        $refreshToken = $data['refresh_token'] ?? null;
-        $expiresIn = $data['expires_in'] ?? 3600;
-        $expiresAt = now()->addSeconds($expiresIn);
-
-        if (!$accessToken) {
-            return response()->json(['error' => 'No access token received'], 400);
-        }
-
-        // Fetch Reddit user data
-        $userResponse = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $accessToken,
-            'User-Agent'    => 'YourApp/1.0 by TTG',
-        ])->get('https://oauth.reddit.com/api/v1/me');
-
-        if ($userResponse->failed()) {
-            return response()->json(['error' => 'Failed to fetch user details', 'details' => $userResponse->json()], 400);
-        }
-
-        $redditUser = $userResponse->json();
-
-        // Find or create user
-        $user = User::updateOrCreate(
-            ['email' => $redditUser['id'] . '@reddit.com'], // Reddit doesn't provide email
-            [
-                'name'        => $redditUser['name'],
-                'password'    => bcrypt(Str::random(16)),
-                'avatar'      => $redditUser['icon_img'] ?? null,
-            ]
-        );
-
-
-        // Find or create the social account
-        $socialAccount = SocialAccount::updateOrCreate(
-            [
-                'user_id' => $user->id,
-                'provider' => 'reddit',
-            ],
-            [
-                'provider_id' => $redditUser['id'],
-                'username' => $redditUser['name'], // Ensure username is never null
-                'access_token' => $accessToken,
-                'refresh_token' => $refreshToken,
-                'expires_at' => $expiresAt,
-            ]
-        );
-        
-        // Generate API token
-        $token = $user->createToken('reddit-auth-token')->plainTextToken;
-
+    public function redirectToProvider($provider)
+    {    
         return response()->json([
-            'user'               => $user,
-            'token'              => $token,
-            'reddit_access_token' => $accessToken, // Needed for API requests
+            'url' => Socialite::driver($provider)
+            ->stateless()
+            ->redirect()
+            ->getTargetUrl()
         ]);
-    }
-
-    public function oldHandleFacebookCallback(Request $request)
-    {
-        try {
-            $socialUser = Socialite::driver('facebook')->stateless()->user();
-
-            // Find or create user
-            $user = User::updateOrCreate(
-                ['email' => $socialUser->getEmail()],
-                [
-                    'name' => $socialUser->getName(),
-                    'password' => bcrypt(Str::random(16)),
-                    'provider' => 'facebook',
-                    'provider_id' => $socialUser->getId(),
-                    'avatar' => $socialUser->getAvatar(),
-                ]
-            );
-
-            // Generate API token
-            $token = $user->createToken('auth-token')->plainTextToken;
-
-            return response()->json([
-                'user' => $user,
-                'token' => $token
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Authentication failed'], 401);
-        }
     }
 
     public function handleProviderCallback($provider)
@@ -516,23 +307,6 @@ class SocialAuthController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => 'Authentication failed'], 401);
         }
-    }
-
-    /**
-     * Redirect the user to the OAuth provider.
-     */
-    public function redirect($provider)
-    {
-        // Ensure the user is authenticated
-        if (!auth()->check()) {
-            return redirect('/login')->with('error', 'You must be logged in to connect accounts.');
-        }
-    
-        // Store the logged-in user's ID in the session
-        session(['social_connect_user_id' => auth()->id()]);
-    
-        // Redirect to the OAuth provider
-        return Socialite::driver($provider)->scopes(['identity', 'submit'])->redirect();
     }
 
     /**

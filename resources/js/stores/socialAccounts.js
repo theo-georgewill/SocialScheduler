@@ -25,14 +25,13 @@ export const useSocialAccounts = defineStore('socialAccounts', {
 						'Authorization': `Bearer ${token}`, // Use the appropriate token if needed
 					},
 				});
-				console.log(JSON.stringify(response.data));
 		
 				// Assuming the response contains the social accounts and the authenticated user
 				if (response.data && Array.isArray(response.data.social_accounts)) {
 					this.accounts = response.data.social_accounts;
 					
 					const authenticatedUser = response.data.authenticated_user;
-					console.log('Authenticated User:', authenticatedUser);
+					console.log('Social User:', JSON.stringify(this.accounts));
 				}
 			} catch (error) {
 				console.error("Fetch error:", error);
@@ -42,12 +41,13 @@ export const useSocialAccounts = defineStore('socialAccounts', {
 			}
 		},
 		
+		//Redirect user to connect an account
 		async connectAccount(provider) {
 			this.loading = true;
 			try {
+				//get user id from user json in localstorage
 				const user = JSON.parse(localStorage.getItem('user'));
 				const userId = user?.id;
-
 
 				const response = await api.get(`/auth/${provider}/redirect?user_id=${userId}`);
 				
@@ -91,7 +91,35 @@ export const useSocialAccounts = defineStore('socialAccounts', {
 			}
 		},
 		
+		// Handle checkbox change (toggle selection)
+		toggleSelectedAccount(account) {
+			// Update the 'selected' state in the account
+			account.selected = !account.selected;
 
+			// Update selectedAccounts array
+			if (account.selected) {
+				this.selectedAccounts.push(account.id);
+			} else {
+				this.selectedAccounts = this.selectedAccounts.filter(id => id !== account.id);
+			}
+
+			// Persist selected accounts to localStorage
+			localStorage.setItem('selectedAccounts', JSON.stringify(this.selectedAccounts));
+		},
+
+		// Manually set selected accounts
+		setSelectedAccounts(accounts) {
+			this.selectedAccounts = accounts;
+			localStorage.setItem('selectedAccounts', JSON.stringify(accounts));
+		},
+
+		// Clear selected accounts
+		clearSelectedAccounts() {
+			this.selectedAccounts = [];
+			localStorage.setItem('selectedAccounts', JSON.stringify([]));
+		},
+
+		// Utility method to show snackbar
 		showSnackbar(message, color = 'info') {
 			this.snackbar.message = message;
 			this.snackbar.color = color;
