@@ -18,6 +18,7 @@ class Post extends Model
         'media',             // JSON field for storing media URLs
         'metadata', 
         'scheduled_at',
+        
     ];
 
     protected $casts = [
@@ -36,7 +37,8 @@ class Post extends Model
     {
         return $this->belongsToMany(SocialAccount::class, 'post_social_account', 'post_id', 'social_account_id')
         ->using(PostSocialAccount::class) // Using the pivot model
-        ->withPivot('status', 'published_at', 'error_message');
+        ->withPivot('status', 'published_at', 'error_message')
+        ->withTimestamps();
     }
 
 }

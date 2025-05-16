@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 class SocialAuthController extends Controller
 {
@@ -107,6 +108,26 @@ class SocialAuthController extends Controller
 
             $redditUser = $userResponse->json();
 
+            // Download and store the avatar image
+            $avatarUrl = $redditUser['icon_img'] ?? null;
+            $avatarPath = null;
+
+            if ($avatarUrl) {
+                // Download the image
+                $imageContent = file_get_contents($avatarUrl);
+
+                if ($imageContent) {
+                    // Create a unique name for the image
+                    $imageName = 'avatar_' . uniqid() . '.jpg';
+
+                    // Store the image in the 'avatars' directory
+                    $avatarPath = 'avatars/' . $imageName;
+
+                    // Store the file
+                    Storage::disk('public')->put($avatarPath, $imageContent);
+                }
+            }
+
             // Get the user JSON from cache to check if it exists
             $cachedUserID = $cachedState['user_id'] ?? null;
 
@@ -126,6 +147,7 @@ class SocialAuthController extends Controller
                         'access_token' => $accessToken,
                         'refresh_token' => $refreshToken,
                         'expires_at' => $expiresAt,
+                        'avatar' => $avatarPath,
                     ]
                 );
                 
@@ -135,9 +157,9 @@ class SocialAuthController extends Controller
                     $socialAccount->restore();
                 }
                 
-
                 // Redirect to Vue app with token in the URL
                 return redirect()->to("/social-account-callback");
+
             } else {
                 // LOGIN/REGISTRATION flow: User doesn't exist, create a new one
                 $user = User::updateOrCreate(
@@ -158,21 +180,12 @@ class SocialAuthController extends Controller
                     'access_token' => $accessToken,
                     'refresh_token' => $refreshToken,
                     'expires_at' => $expiresAt,
+                    'avatar' => $avatarPath,
                 ]);
 
                 // Generate API token for the new user
                 $token = $user->createToken('reddit-auth-token')->plainTextToken;
 
-                /*
-                return response()->json([
-                    'message' => 'Auth flow initiated',
-                    'cached_user' => $cachedUser,
-                    'user' => $user,
-                    'token' => $token,
-                    'social_account' => $socialAccount,
-                ]);
-                */
-                
                 // Redirect to Vue app with token in the URL
                 return redirect()->to("/auth/callback?provider=reddit&token=$token&accessToken=$code&user=" . urlencode(json_encode($user)));
 
@@ -206,13 +219,30 @@ class SocialAuthController extends Controller
             $expiresIn = $socialUser->expiresIn ?? null; // Expiry time in seconds
             $expiresAt = $expiresIn ? now()->addSeconds($expiresIn) : null;
 
+            // Fetch the Facebook profile picture using the Graph API
+            $fbGraphUrl = "https://graph.facebook.com/{$socialUser->getId()}/picture?type=large&access_token={$accessToken}";
+            $imageContent = file_get_contents($fbGraphUrl); // Fetch the image content from Facebook API
+
+            $avatarPath = null;
+
+            if ($imageContent) {
+                // Create a unique name for the image
+                $imageName = 'avatar_' . uniqid() . '.jpg';
+
+                // Store the image in the 'avatars' directory in public storage
+                $avatarPath = 'avatars/' . $imageName;
+
+                // Store the file using Laravel's Storage facade
+                Storage::disk('public')->put($avatarPath, $imageContent);
+            }
+
             // Find or create user
             $user = User::firstOrCreate(
                 ['email' => $socialUser->getEmail()],
                 [
                     'name' => $socialUser->getName(),
                     'password' => bcrypt(Str::random(16)),
-                    'avatar' => $socialUser->getAvatar(),
+                    'avatar' => $avatarPath ? $avatarPath : null,
                 ]
             );
 
@@ -236,6 +266,7 @@ class SocialAuthController extends Controller
                     'access_token' => $accessToken,
                     'refresh_token' => $refreshToken,
                     'expires_at' => $expiresAt,
+                    'avatar' => $avatarPath ? $avatarPath : null, 
                 ]
             );
 

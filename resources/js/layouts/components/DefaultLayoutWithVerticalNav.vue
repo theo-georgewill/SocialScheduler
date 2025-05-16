@@ -1,6 +1,7 @@
 <script setup>
 import NavItems from '@/layouts/components/NavItems.vue'
 import logo from '@images/logo.svg?raw'
+import autopost from '@images/logo.png'
 import VerticalNavLayout from '@layouts/components/VerticalNavLayout.vue'
 import Footer from '@/layouts/components/Footer.vue'
 import NavbarThemeSwitcher from '@/layouts/components/NavbarThemeSwitcher.vue'
@@ -55,15 +56,9 @@ import UserProfile from '@/layouts/components/UserProfile.vue'
         class="app-logo app-title-wrapper"
       >
         <!-- eslint-disable vue/no-v-html -->
-        <div
-          class="d-flex"
-          v-html="logo"
-        />
+        <v-img :src="autopost" alt="Autopost Logo" width="60" height="60" class="mx-auto text-center app-logo-img" />
         <!-- eslint-enable -->
 
-        <h1 class="app-logo-title">
-          sneat
-        </h1>
       </RouterLink>
 
       <IconBtn
@@ -89,25 +84,29 @@ import UserProfile from '@/layouts/components/UserProfile.vue'
 </template>
 
 <style lang="scss" scoped>
-.meta-key {
-  border: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
-  border-radius: 6px;
-  block-size: 1.5625rem;
-  line-height: 1.3125rem;
-  padding-block: 0.125rem;
-  padding-inline: 0.25rem;
-}
+	.meta-key {
+		border: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
+		border-radius: 6px;
+		block-size: 1.5625rem;
+		line-height: 1.3125rem;
+		padding-block: 0.125rem;
+		padding-inline: 0.25rem;
+	}
 
-.app-logo {
-  display: flex;
-  align-items: center;
-  column-gap: 0.75rem;
 
-  .app-logo-title {
-    font-size: 1.25rem;
-    font-weight: 500;
-    line-height: 1.75rem;
-    text-transform: uppercase;
-  }
-}
+	.app-logo {
+		display: flex;
+		align-items: center;
+		column-gap: 0.75rem;
+		margin: 0 auto;
+
+		.app-logo-title {
+			font-size: 1.25rem;
+			font-weight: 500;
+			line-height: 1.75rem;
+			text-transform: uppercase;
+			margin-left: -20px;
+		}
+	}
+
 </style>

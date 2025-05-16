@@ -20,7 +20,8 @@ class SocialAccount extends Model
         'access_token',           // Access token for API requests
         'refresh_token',     // Refresh token (for refreshing expired tokens)
         'expires_at',// Token expiration date
-        'is_deleted'       // Soft delete flag (false by default, true when "deleted")
+        'is_deleted',       // Soft delete flag (false by default, true when "deleted")
+        'avatar',
     ];
 
     protected $casts = [

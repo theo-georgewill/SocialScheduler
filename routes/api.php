@@ -50,6 +50,9 @@ Route::middleware([
     Route::post('/posts', [PostController::class, 'store']);
     Route::delete('/posts/{id}', [PostController::class, 'destroy']);
     Route::post('/post/reddit/{id}', [PostController::class, 'publishToReddit']);
+    Route::post('/publish/reddit/{post}', [PostController::class, 'publishToReddit']);
+    Route::post('/publish/facebook/{post}', [PostController::class, 'publishToFacebook']);
+
 
     // Routes that do not require session (if any)
     Route::post('/upload-files', [FileUploadController::class, 'upload']);

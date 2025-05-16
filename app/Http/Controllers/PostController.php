@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Post;
 use App\Models\SocialAccount;
+use App\Services\RedditService;
+use App\Services\FacebookService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -11,16 +13,54 @@ use Illuminate\Support\Facades\Auth;
 
 class PostController extends Controller
 {
+    protected $reddit;
+
+    public function __construct(RedditService $reddit, FacebookService $facebook)
+    {
+        $this->reddit = $reddit;
+        $this->facebook = $facebook;
+    }
+
     /**
      * Get all scheduled or posted social media posts for the authenticated user.
      */
     public function index(Request $request)
     {
-        $user_id = $request->input('user_id');
-        return response()->json(
-            Post::where('user_id', $user_id)->where('is_deleted', false)->get()
-        );
+        $userId = $request->input('user_id');
+        $status = $request->input('status');
+        $provider = $request->input('provider');
+
+        $query = Post::where('user_id', $userId);
+
+        $query->whereNotNull('scheduled_at'); 
+        $query->with(['socialAccounts' => function ($q) use ($status, $provider) {
+            if ($status !== "all") {
+                $q->wherePivot('status', $status);
+            }
+        
+            if ($provider !== "all") {
+                $q->where('social_accounts.provider', $provider);
+            }
+        }]);
+        
+        if ($status !== "all") {
+            $query->whereHas('socialAccounts', function ($q) use ($status) {
+                $q->where('post_social_account.status', $status);
+            });
+        }
+        
+        if ($provider !== "all") {
+            $query->whereHas('socialAccounts', function ($q) use ($provider) {
+                $q->where('social_accounts.provider', $provider);
+            });
+        }
+        
+
+        $posts = $query -> get();
+        return response()->json($posts);
     }
+
+
 
     /**
      * Store a new social media post.
@@ -70,8 +110,6 @@ class PostController extends Controller
             'post' => $post
         ]);
     }
-    
-
 
     /**
      * Soft delete (remove) a scheduled post.
@@ -169,9 +207,76 @@ class PostController extends Controller
         }
     }
 
-    /**
-     * Publish a post to Reddit.
-     */
+    public function publishToReddit(Post $post)
+    {
+        // Retrieve all Reddit accounts linked to this post
+        $redditAccounts = $post->socialAccounts->where('provider', 'reddit');
+
+        if ($redditAccounts->isEmpty()) {
+            return response()->json(['error' => 'No Reddit accounts linked to this post.'], 400);
+        }
+
+        try {
+            // Loop through each Reddit account and post
+            foreach ($redditAccounts as $account) {
+                // Ensure the access token is valid and publish to Reddit
+                $this->reddit->publish($post, $account);
+            }
+            $post->update(['status' => 'posted', 'posted_at' => now()]);
+            return response()->json(['message' => 'Posted to Reddit']);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            $post->update(['status' => 'failed']);
+            return response()->json(['error' => 'Reddit post failed'], 500);
+        }
+    }
+
+    public function publishToFacebook(Post $post)
+    {
+        // Retrieve all Facebook accounts linked to this post
+        $facebookAccounts = $post->socialAccounts->where('provider', 'facebook');
+
+        if ($facebookAccounts->isEmpty()) {
+            return response()->json(['error' => 'No Facebook accounts linked to this post.'], 400);
+        }
+
+        foreach ($facebookAccounts as $account) {
+            try {
+                // Ensure the access token is valid and publish to Facebook
+                $this->facebook->publish($post, $account);
+
+                $post->socialAccounts()->updateExistingPivot($account->id, [
+                    'status' => 'published',
+                    'published_at' => now(),
+                    'error_message' => null,
+                ]);
+            } catch (\Exception $e) {
+                \Log::error("Failed to publish to Facebook account ID {$account->id}: " . $e->getMessage());
+
+                $post->socialAccounts()->updateExistingPivot($account->id, [
+                    'status' => 'failed',
+                    'error_message' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Optionally: Update main post status based on all outcomes
+        $hasFailures = $post->socialAccounts()
+            ->wherePivot('status', 'failed')
+            ->exists();
+
+        $post->update([
+            'status' => $hasFailures ? 'partially_posted' : 'posted',
+            'posted_at' => now(),
+        ]);
+
+        return response()->json(['message' => $hasFailures ? 'Posted with some failures' : 'Posted to Facebook']);
+    }
+
+
+    /*
+     *Publish a post to Reddit.
+     
     protected function publishToReddit(Post $post)
     {
         $account = $post->socialAccount;
@@ -191,6 +296,7 @@ class PostController extends Controller
 
         $this->postToRedditApi($account, $subreddit, $title, $post->content);
     }
+    */
 
     /**
      * Post content to Reddit via API.
@@ -215,7 +321,7 @@ class PostController extends Controller
     /**
      * Publish a post to Facebook.
      */
-    protected function publishToFacebook(Post $post)
+    protected function oldPublishToFacebook(Post $post)
     {
         $account = $post->socialAccount;
 

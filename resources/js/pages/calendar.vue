@@ -1,45 +1,50 @@
 <script setup>
-import { ref } from 'vue';
+	import { onMounted, computed } from 'vue'
+	import { usePostStore } from '@/stores/postStore'
 
-const today = new Date()
+	const postStore = usePostStore()
 
-const events = ref([
-  { 
-    title: 'Meeting', 
-    start: new Date(), 
-    end: new Date(today.getTime() + 60 * 60 * 1000), // 1 hour later
-    color: 'blue' 
-  },
-  { 
-    title: 'Lunch',  
-    start: new Date(today.setHours(12, 0)), 
-    end: new Date(today.setHours(13, 0)), 
-    color: 'green' 
-  },
-]);
+	onMounted(() => {
+		postStore.fetchPosts({'status': 'all','provider': 'all'})
+	})
+
+	const calendarEvents = computed(() => {
+		return postStore.posts.filter(post => !!post.scheduled_at)
+			.map(post => ({
+				title: post.content || 'Scheduled Post',
+				start: new Date(post.scheduled_at),
+				end: new Date(post.scheduled_at),
+				color: '#3f51b5',
+			}))
+	})
 </script>
 
 <template>
-  <div>
-    <RouterView />
-    <VContainer>
-      <VCard>
-        <VCardTitle>Vuetify Calendar</VCardTitle>
-        <VCardText>
-          <VCalendar ref="calendar" color="primary" :events="events" :hide-week-number="true" />
-        </VCardText>
-      </VCard>
-    </VContainer>
-  </div>
+	<div>
+		<RouterView />
+		<VContainer>
+			<VCard>
+				<VCardTitle>Scheduled Posts</VCardTitle>
+				<VCardText>
+					<VCalendar 
+						ref="calendar" 
+						color="primary" 
+						:events="calendarEvents" 
+						:hide-week-number="true" 
+					/>
+				</VCardText>
+			</VCard>
+		</VContainer>
+	</div>
 </template>
 
 <style>
 .layout-wrapper.layout-blank {
-  flex-direction: column;
+	flex-direction: column;
 }
 
 .v-calendar-month__weeknumber {
-  display: none !important;
+	display: none !important;
 }
 
 </style>

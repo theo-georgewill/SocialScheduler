@@ -14,16 +14,23 @@ export const usePostStore = defineStore('postStore', () => {
     const scheduledTime = ref('');
     
     // Getters
-    const getPostById = (id) => computed(() => posts.value.find(post => post.id === id));
+    const getPostById = (id) => computed(
+        () => posts.value.find(post => post.id === id)
+    );
 
     // Actions
     const fetchPosts = async (filters = {}) => {
         loading.value = true;
-        const user = JSON.parse(localStorage.getItem('user'));
-        const userId = user?.id;
         try {
-            const response = await api.get('/posts', { params: filters, userId });
-            posts.value = response.data.data; // assuming the posts are inside the data property
+            const user = JSON.parse(localStorage.getItem('user'));
+            const userId = user?.id;
+            const response = await api.get('/posts', { 
+                params: {
+                'user_id': userId,
+                ...filters, 
+                }
+            });
+            posts.value = response.data;
         } catch (err) {
             error.value = err.response ? err.response.data : err.message;
         } finally {
@@ -100,6 +107,36 @@ export const usePostStore = defineStore('postStore', () => {
         }
     };
 
+    const postToReddit = async (postId) => {
+        loading.value = true;
+        try {
+            const response = await api.post(`/publish/reddit/${postId}`);
+            const index = posts.value.findIndex(p => p.id === postId);
+            if (index !== -1) {
+                posts.value[index] = response.data; // Update the post with the Reddit response
+            }
+        } catch (err) {
+            error.value = err.response ? err.response.data : err.message;
+        } finally {
+            loading.value = false;
+        }
+    };
+
+    const postToFacebook = async (postId) => {
+        loading.value = true;
+        try {
+            const response = await api.post(`/publish/facebook/${postId}`);
+            const index = posts.value.findIndex(p => p.id === postId);
+            if (index !== -1) {
+                posts.value[index] = response.data; // Update the post with the Reddit response
+            }
+        } catch (err) {
+            error.value = err.response ? err.response.data : err.message;
+        } finally {
+            loading.value = false;
+        }
+    };
+
     // Helper functions for handling the create post form data
     const setText = (newText) => {
         text.value = newText;
@@ -127,6 +164,8 @@ export const usePostStore = defineStore('postStore', () => {
         deletePost,
         getPostById,
         // Create post specific actions
+        postToReddit,
+        postToFacebook,
         setText,
         addFile,
         removeFile,
