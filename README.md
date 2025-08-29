@@ -29,7 +29,7 @@ To get started, use the following tools:
 Clone the repository and install dependencies:
 
 ```sh
-git clone https://github.com/yourusername/socialscheduler.git
+git clone https://github.com/theo-georgewill/socialscheduler.git
 cd socialscheduler
 npm install
 composer install
