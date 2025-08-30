@@ -31,7 +31,7 @@ Clone the repository and install dependencies:
 ```sh
 git clone https://github.com/theo-georgewill/socialscheduler.git
 cd socialscheduler
-npm install
+npm install --legacy-peer-deps
 composer install
 ```
 
@@ -76,6 +76,4 @@ If you'd like to contribute to SocialScheduler, please fork the repository and s
 ## License
 MIT License. See `LICENSE` for details.
 
----
-🚀 Start automating your social media workflow with SocialScheduler!
 
